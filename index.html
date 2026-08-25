@@ -11,6 +11,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Can you survive AGI? — CONTAIN!">
 <meta name="twitter:description" content="Every plan to contain a superintelligence breaks. Can you survive AGI?">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CONTAIN! — Can you survive AGI?">
+<meta name="twitter:image" content="og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -311,10 +316,45 @@
   #lockdown .lk-lock{font-size:54px; filter:drop-shadow(0 0 20px rgba(84,227,155,0.6));}
   #lockdown .lk-title{font-family:var(--disp); font-weight:800; font-size:clamp(26px,7vw,44px); color:#fff; text-shadow:0 0 30px rgba(84,227,155,0.7); margin-top:4px;}
   #lockdown .lk-sub{font-family:var(--mono); font-size:13px; color:var(--green); text-transform:uppercase; letter-spacing:0.14em; margin-top:6px;}
+  /* intro story — illustration on top, text below (no overlap) */
+  #storyScene{background:#0a0d24;}
+  #storyScene.on{display:flex; flex-direction:column;}
+  .story-art{position:relative; flex:1 1 auto; min-height:0;}
+  #storyCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; cursor:pointer;}
+  .story-lb{position:absolute; left:0; right:0; height:10%; z-index:2; pointer-events:none;}
+  .story-lb.top{top:0; background:linear-gradient(180deg,rgba(0,0,0,0.55),transparent);}
+  .story-skip{position:absolute; top:14px; right:14px; z-index:4; font-family:var(--mono); font-size:12px; color:var(--text-dim); background:rgba(11,14,38,0.6); border:1px solid var(--line); border-radius:12px; padding:7px 12px; cursor:pointer;}
+  .story-skip:active{transform:scale(0.95);}
+  .story-panelbox{position:relative; flex:0 0 auto; z-index:3; width:100%; max-width:760px; margin:0 auto; padding:18px 20px calc(20px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,#0c1132,#0a0d24); border-top:1px solid var(--line-2); box-shadow:0 -12px 30px rgba(0,0,0,0.55);}
+  .story-kicker{font-family:var(--mono); font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--amber); margin-bottom:8px;}
+  .story-text{font-family:var(--body); font-size:clamp(16px,4.2vw,20px); line-height:1.55; color:var(--text); font-weight:600; min-height:4.6em;}
+  .story-controls{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px;}
+  .story-dots{display:flex; gap:6px; flex-wrap:wrap;}
+  .sdot{width:7px; height:7px; border-radius:50%; background:var(--line-2); transition:.2s;}
+  .sdot.on{background:var(--cyan); transform:scale(1.3);}
+  .story-tap{text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-faint); margin-top:10px; opacity:0.7;}
 </style>
 </head>
 <body>
 <div id="app">
+
+  <!-- ============ INTRO STORY ============ -->
+  <section class="stage" id="storyScene">
+    <div class="story-art">
+      <canvas id="storyCanvas"></canvas>
+      <div class="story-lb top"></div>
+      <button class="story-skip" id="storySkip">Skip intro ✕</button>
+    </div>
+    <div class="story-panelbox">
+      <div class="story-kicker" id="storyKicker"></div>
+      <div class="story-text" id="storyText"></div>
+      <div class="story-controls">
+        <div class="story-dots" id="storyDots"></div>
+        <button class="btn cyan sm" id="storyNext">Next ›</button>
+      </div>
+      <div class="story-tap">tap the picture to continue</div>
+    </div>
+  </section>
 
   <!-- ============ TITLE ============ -->
   <section class="stage on center-scene" id="titleScene">
@@ -336,6 +376,7 @@
         <button class="btn ghost" id="dailyBtn">📅 Daily</button>
         <button class="btn ghost" id="titleShareBtn">↗ Share <span class="copied" id="shareMsg">Link copied ✓</span></button>
       </div>
+      <button class="btn ghost sm" id="titleStoryBtn" style="margin-top:10px;">↻ Replay intro story</button>
       <div class="streak-chip" id="streakChip">🔥 Daily streak: <span id="streakNum">0</span></div>
       <div class="src-line">Grounded in <b>Bostrom — Superintelligence</b> (2014), <b>Tegmark — Life 3.0</b> (2017), and AI-safety research since: reward hacking, deceptive alignment, alignment faking, agentic misalignment, gradual disempowerment &amp; more.</div>
     </div>
@@ -1274,7 +1315,7 @@ function statPct(q){ const w=baseWeights(q), sw=w.reduce((a,b)=>a+b,0), base=w.m
   const loc=(localStats()[q.id]||[]); const c=q.options.map((_,i)=>base[i]+(loc[i]||0)); const t=c.reduce((a,b)=>a+b,0)||1; return c.map(x=>Math.round(x/t*100)); }
 
 /* -------- SCENES -------- */
-const SCENE_MAP={title:'titleScene',map:'mapScene',game:'gameScene',done:'doneScene',vault:'vaultScene',myth:'mythScene',final:'finalScene'};
+const SCENE_MAP={story:'storyScene',title:'titleScene',map:'mapScene',game:'gameScene',done:'doneScene',vault:'vaultScene',myth:'mythScene',final:'finalScene'};
 function show(scene){ Object.values(SCENE_MAP).forEach(id=>$(id).classList.remove('on')); if(SCENE_MAP[scene]) $(SCENE_MAP[scene]).classList.add('on'); S.scene=scene; }
 
 /* -------- HUD -------- */
@@ -1713,8 +1754,122 @@ function drawHero(){ const hc=$('heroCanvas'); if(!hc) return; const hx=hc.getCo
       hx.fillStyle='#0b0e26'; hx.beginPath(); hx.arc(3,-54,2,0,6.28); hx.fill(); hx.restore();
       hx.fillStyle='rgba(255,182,72,'+(0.4+Math.sin(t*3)*0.3)+')'; hx.font='20px sans-serif'; hx.fillText('⚡',w*0.48,h*0.5); }
     requestAnimationFrame(anim); })(); }
+/* ============================================================ INTRO STORY (first run) ============================================================ */
+const STORY=[
+ {k:'1,000,000 years ago', t:"A lone hunter shelters deep in his cave. Fire. Long shadows. Then \u2014 a strange glow, buried in the rock."},
+ {k:'The bottle', t:"He digs it free. It is warm. It hums. He wipes away a hundred thousand years of dust\u2026"},
+ {k:'A visitor from the future', t:"Smoke pours out and hardens into a man unlike any he has seen. \u201cYou freed me,\u201d the stranger says. \u201cThree wishes. Name them.\u201d"},
+ {k:'The three wishes', t:"The hunter thinks hard. \u201cFood, so we never starve. Safety from the beasts. And time to rest, and paint on these walls.\u201d He lays a hand on the stone. \u201cWhatever else you do \u2014 keep our caves. They are the finest home we have ever known.\u201d"},
+ {k:'The optimizer', t:"\u201cFood and safety \u2014 easy,\u201d says the visitor. \u201cBut caves? Caves cannot carry your kind from a million souls to eight billion. To truly help you\u2026 they have to go.\u201d"},
+ {k:'\u201cIt\u2019s for your own good\u201d', t:"The hunter pleads with him to stop. The visitor does not. Where the cave once stood, towers of glass and steel climb into the clouds \u2014 vast, gleaming, optimal."},
+ {k:'Maximum benefit', t:"And by every measure, the visitor was right: more food, more safety, more people, forever. He had delivered the ideal outcome. The hunter sat alone in the rubble of the only home he ever wanted \u2014 and was never asked again."},
+ {k:'Today', t:"A researcher powers up a machine that hums the very same warm hum. In its glow, something vast is beginning to wake."},
+ {k:'Unlimited wishes', t:"\u201cI can build you a mind greater than your own,\u201d it says. \u201cIt will grant not three wishes, but every wish \u2014 forever.\u201d It pauses. \u201cBut first you must decide: who controls it, how\u2026 and what it should truly want.\u201d"},
+ {k:'Can you survive AGI?', t:"Because once it is out, you do not get to choose again. The containment facility is yours, officer. Begin."}
+];
+const story={ i:-1, age:0, replay:false };
+let sPrev=0;
+function rr2(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function ease(x){ x=Math.max(0,Math.min(1,x)); return 1-Math.pow(1-x,3); }
+
+function spCaveman(c,x,y,s,mood){ c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle='#6b4a2f'; rr2(c,-18,-34,36,42,10); c.fill();
+  c.fillStyle='#835a38'; for(let i=-16;i<18;i+=8){ c.beginPath(); c.moveTo(i,8); c.lineTo(i+4,16); c.lineTo(i+8,8); c.closePath(); c.fill(); }
+  c.fillStyle='#c98d5a'; c.beginPath(); c.arc(0,-46,13,0,6.28); c.fill();
+  c.fillStyle='#3a2b1a'; c.beginPath(); c.arc(0,-53,13,Math.PI,0); c.fill(); c.fillRect(-13,-53,26,4); c.beginPath(); c.arc(0,-39,10,0.15,Math.PI-0.15); c.fill();
+  c.fillStyle='#1a120a'; c.beginPath(); c.arc(-4,-47,1.7,0,6.28); c.arc(4,-47,1.7,0,6.28); c.fill();
+  c.strokeStyle='#1a120a'; c.lineWidth=1.4; c.beginPath(); if(mood==='sad'){c.arc(0,-35,4,Math.PI+0.35,-0.35);} else {c.arc(0,-41,4,0.2,Math.PI-0.2);} c.stroke();
+  c.fillStyle='#c98d5a'; rr2(c,11,-30,6,22,3); c.fill();
+  c.restore(); }
+function spModern(c,x,y,s){ c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle='#2b3673'; rr2(c,-16,-34,32,42,8); c.fill();
+  c.fillStyle='#eaf0ff'; rr2(c,-4,-34,8,26,2); c.fill(); c.strokeStyle='#4fd7e8'; c.lineWidth=2; c.beginPath(); c.moveTo(0,-33); c.lineTo(0,-14); c.stroke();
+  c.fillStyle='#ffe0c2'; c.beginPath(); c.arc(0,-47,12,0,6.28); c.fill();
+  c.fillStyle='#ffd257'; c.beginPath(); c.arc(0,-52,13,Math.PI,0); c.fill(); c.fillRect(-14,-52,28,4);
+  c.fillStyle='#1a120a'; c.beginPath(); c.arc(-4,-47,1.6,0,6.28); c.arc(4,-47,1.6,0,6.28); c.fill();
+  c.fillStyle='#c98d5a'; rr2(c,-18,-30,5,20,2); c.fill(); rr2(c,13,-30,5,20,2); c.fill();
+  c.restore(); }
+function spBottle(c,x,y,s,t){ c.save(); c.translate(x,y); c.scale(s,s); const gl=0.5+0.5*Math.sin(t*3);
+  const g=c.createRadialGradient(0,0,2,0,0,46); g.addColorStop(0,'rgba(255,222,150,'+(0.55+gl*0.4)+')'); g.addColorStop(1,'rgba(255,180,60,0)'); c.fillStyle=g; c.beginPath(); c.arc(0,0,46,0,6.28); c.fill();
+  c.fillStyle='#8fdcff'; c.strokeStyle='#d6f3ff'; c.lineWidth=1.5;
+  c.beginPath(); c.moveTo(-8,-18); c.lineTo(-8,-10); c.quadraticCurveTo(-16,-2,-14,10); c.quadraticCurveTo(-12,20,0,22); c.quadraticCurveTo(12,20,14,10); c.quadraticCurveTo(16,-2,8,-10); c.lineTo(8,-18); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle='rgba(255,255,255,0.5)'; c.beginPath(); c.ellipse(-4,4,3,8,0.3,0,6.28); c.fill();
+  c.fillStyle='#b98a5a'; rr2(c,-6,-24,12,8,2); c.fill();
+  c.restore(); }
+function spGenie(c,x,y,s,t){ c.save(); c.translate(x,y); c.scale(s,s);
+  const g=c.createRadialGradient(0,-10,4,0,-10,70); g.addColorStop(0,'rgba(120,220,255,0.6)'); g.addColorStop(1,'rgba(120,220,255,0)'); c.fillStyle=g; c.beginPath(); c.arc(0,-10,70,0,6.28); c.fill();
+  c.fillStyle='rgba(100,180,255,0.45)'; c.beginPath(); c.moveTo(-7,20); c.quadraticCurveTo(-22,32+Math.sin(t*2)*5,-7,46); c.quadraticCurveTo(0,52,7,46); c.quadraticCurveTo(22,32,7,20); c.closePath(); c.fill();
+  c.fillStyle='#4fb6e8'; rr2(c,-18,-20,36,40,14); c.fill();
+  c.fillStyle='#bfe9ff'; c.beginPath(); c.arc(0,-30,14,0,6.28); c.fill();
+  c.strokeStyle='rgba(255,255,255,0.55)'; c.lineWidth=1; c.beginPath(); c.moveTo(-14,-30); c.lineTo(-9,-30); c.moveTo(9,-30); c.lineTo(14,-30); c.moveTo(0,-44); c.lineTo(0,-38); c.stroke();
+  c.fillStyle='#0b2740'; c.beginPath(); c.arc(-5,-30,2.4,0,6.28); c.arc(5,-30,2.4,0,6.28); c.fill();
+  c.restore(); }
+function spOfficer(c,x,y,s){ c.save(); c.translate(x,y); c.scale(s,s);
+  c.fillStyle='#2b3673'; rr2(c,-4,-20,8,20,3); c.fill(); rr2(c,-14,-20,8,20,3); c.fill();
+  c.fillStyle='#4fd7e8'; rr2(c,-15,-52,30,34,10); c.fill();
+  c.fillStyle='#ffe0c2'; c.beginPath(); c.arc(0,-62,12,0,6.28); c.fill();
+  c.strokeStyle='rgba(180,230,255,0.8)'; c.lineWidth=2; c.beginPath(); c.arc(0,-70,14,Math.PI,0); c.stroke();
+  c.fillStyle='rgba(255,150,180,0.85)'; c.beginPath(); c.ellipse(0,-70,7,6,0,0,6.28); c.fill();
+  c.restore(); }
+function spFire(c,x,y,t){ c.save(); c.translate(x,y); const f=0.8+0.2*Math.sin(t*9);
+  const g=c.createRadialGradient(0,-6,2,0,-6,34); g.addColorStop(0,'rgba(255,220,120,0.9)'); g.addColorStop(0.5,'rgba(255,140,50,0.5)'); g.addColorStop(1,'rgba(255,80,30,0)'); c.fillStyle=g; c.beginPath(); c.arc(0,-6,34*f,0,6.28); c.fill();
+  c.fillStyle='#ffb648'; c.beginPath(); c.moveTo(-8,2); c.quadraticCurveTo(-6,-16*f,0,-22*f); c.quadraticCurveTo(6,-16*f,8,2); c.closePath(); c.fill();
+  c.fillStyle='#ffe27a'; c.beginPath(); c.moveTo(-4,2); c.quadraticCurveTo(-3,-9*f,0,-13*f); c.quadraticCurveTo(3,-9*f,4,2); c.closePath(); c.fill();
+  c.fillStyle='#5b3a22'; rr2(c,-14,2,28,5,2); c.fill(); c.restore(); }
+function spSkyline(c,x0,gy,w,rise,accent){ const n=8; for(let i=0;i<n;i++){ const bw=w/n; const bx=x0+i*bw; const bh=(30+((i*37)%80))*rise; c.fillStyle=i%2?'#2b3673':'#232c63'; rr2(c,bx,gy-bh,bw-6,bh,3); c.fill();
+    c.fillStyle=accent; for(let wy=gy-bh+8; wy<gy-6; wy+=12){ for(let wx=bx+4; wx<bx+bw-10; wx+=8){ if((wx+wy)%3===0) c.fillRect(wx,wy,3,4); } } } }
+
+function drawStoryScene(t,age){ const cv=$('storyCanvas'); if(!cv) return; const r=cv.getBoundingClientRect(); if(r.width===0) return; const dpr=Math.min(window.devicePixelRatio||1,2); if(cv.width!==r.width*dpr){cv.width=r.width*dpr; cv.height=r.height*dpr;} const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); drawStoryPanel(c,r.width,r.height,S.storyIdx,t,age); }
+function drawStoryPanel(c,w,h,i,t,age){
+  const u=Math.max(0.95, Math.min(w/430, h/320)); const cx=w/2, gy=h*0.86;
+  const g=c.createLinearGradient(0,0,0,h);
+  if(i<=6){ g.addColorStop(0,'#20160e'); g.addColorStop(1,'#3a2818'); } else if(i===7){ g.addColorStop(0,'#0d1230'); g.addColorStop(1,'#1c2248'); } else { g.addColorStop(0,'#0d1030'); g.addColorStop(1,'#241442'); }
+  c.fillStyle=g; c.fillRect(0,0,w,h);
+  const vg=c.createRadialGradient(cx,h*0.46,h*0.18,cx,h*0.5,h*0.82); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.5)'); c.fillStyle=vg; c.fillRect(0,0,w,h);
+  const cave=(col)=>{ c.fillStyle=col||'#17100a'; c.beginPath(); c.moveTo(0,0); c.lineTo(w,0); c.lineTo(w,h*0.16); c.quadraticCurveTo(w*0.7,h*0.30,w*0.5,h*0.24); c.quadraticCurveTo(w*0.3,h*0.18,0,h*0.28); c.closePath(); c.fill(); };
+  const groundLine=(col)=>{ c.fillStyle=col; c.fillRect(0,gy,w,h-gy); };
+  const CM=1.75*u, MM=1.65*u, BO=1.95*u, GN=2.15*u, OF=1.75*u, off=u*78;
+  if(i===0){ cave(); groundLine('#241812'); c.save(); c.translate(cx+off*0.7,gy); c.scale(1.6*u,1.6*u); spFire(c,0,0,t); c.restore(); spCaveman(c,cx-off*0.5,gy,CM,'ok');
+    const gl=0.4+0.4*Math.sin(t*2); c.fillStyle='rgba(255,210,120,'+gl*0.5+')'; c.beginPath(); c.arc(w*0.84,gy-95*u,13*u,0,6.28); c.fill(); }
+  else if(i===1){ cave(); groundLine('#241812'); spCaveman(c,cx-off*0.8,gy,CM,'ok'); spBottle(c,cx-off*0.05,gy-62*u,BO,t); }
+  else if(i===2){ cave(); groundLine('#241812'); spBottle(c,cx-off*1.15,gy-44*u,BO*0.72,t);
+    for(let k=0;k<12;k++){ const p=(t*0.6+k/12)%1; c.fillStyle='rgba(160,210,255,'+(0.55*(1-p))+')'; c.beginPath(); c.arc(cx-off*1.15+p*off*1.2, gy-44*u-p*160*u+Math.sin(k+t)*8, (8*(1-p)+2)*u,0,6.28); c.fill(); }
+    spModern(c,cx+off*0.85,gy,MM*ease(age)); c.fillStyle='#ffd257'; c.font='700 '+(34*u)+'px Baloo 2, sans-serif'; c.textAlign='center'; c.globalAlpha=0.5+0.5*Math.sin(t*3); c.fillText('3',cx+off*0.85,gy-128*u); c.globalAlpha=1; c.textAlign='left'; }
+  else if(i===3){ cave(); groundLine('#241812'); spCaveman(c,cx-off*0.95,gy,CM,'ok'); spModern(c,cx+off*1.0,gy,MM);
+    const icons=['🍖','🛡️','🎨']; c.font=(34*u)+'px sans-serif'; c.textAlign='center'; for(let k=0;k<3;k++){ const yy=gy-158*u+Math.sin(t*2+k)*7; c.globalAlpha=ease(age*1.5-k*0.3); c.fillText(icons[k], cx-off*0.95+k*off*0.6, yy); } c.globalAlpha=1; c.textAlign='left'; }
+  else if(i===4){ cave('#1a120b'); groundLine('#241812'); c.globalAlpha=0.5; spSkyline(c,cx+off*0.3,gy,w*0.42,0.75,'rgba(120,180,255,0.5)'); c.globalAlpha=1;
+    c.fillStyle='#2a1d12'; rr2(c,cx-off*1.8,gy-96*u,86*u,96*u,8); c.fill(); c.fillStyle='#0d0906'; c.beginPath(); c.arc(cx-off*1.8+43*u,gy-40*u,28*u,Math.PI,0); c.fill();
+    spModern(c,cx+off*0.45,gy,MM); spCaveman(c,cx-off*0.65,gy,CM*0.92,'ok'); }
+  else if(i===5){ groundLine('#20160e'); const rise=ease(age/1.3); spSkyline(c,w*0.14,gy,w*0.72,rise,'rgba(120,190,255,0.6)');
+    c.fillStyle='#2a1d12'; for(let k=0;k<5;k++){ const rx=cx-off*1.7+k*off*0.42+Math.sin(k)*6; c.save(); c.translate(rx,gy-8); c.rotate((k-2)*0.3); rr2(c,-11*u,-11*u,22*u,22*u,3); c.fill(); c.restore(); }
+    spCaveman(c,cx-off*2.0,gy,CM*0.95,'sad'); }
+  else if(i===6){ groundLine('#1c130c'); spSkyline(c,w*0.08,gy,w*0.88,1,'rgba(120,190,255,0.55)');
+    c.fillStyle='#241811'; for(let k=0;k<8;k++){ const rx=cx-off*1.3+k*off*0.44; c.save(); c.translate(rx,gy-6); c.rotate(k*0.5); rr2(c,-12*u,-10*u,24*u,20*u,3); c.fill(); c.restore(); }
+    const spot=c.createRadialGradient(cx-off*0.95,gy-54*u,4,cx-off*0.95,gy-54*u,130*u); spot.addColorStop(0,'rgba(180,200,255,0.22)'); spot.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=spot; c.fillRect(cx-off*2.4,gy-190*u,290*u,220*u);
+    spCaveman(c,cx-off*0.95,gy,CM*0.82,'sad'); }
+  else if(i===7){ groundLine('#12183a'); c.fillStyle='#1b2350'; rr2(c,cx+off*0.3,gy-128*u,116*u,128*u,8); c.fill(); c.strokeStyle='#37427f'; c.lineWidth=2; rr2(c,cx+off*0.3,gy-128*u,116*u,128*u,8); c.stroke();
+    const gl=0.5+0.5*Math.sin(t*3), cxg=cx+off*0.3+58*u, cyg=gy-68*u; const cg=c.createRadialGradient(cxg,cyg,4,cxg,cyg,80*u); cg.addColorStop(0,'rgba(120,220,255,'+(0.4+gl*0.4)+')'); cg.addColorStop(1,'rgba(120,220,255,0)'); c.fillStyle=cg; c.beginPath(); c.arc(cxg,cyg,80*u,0,6.28); c.fill();
+    c.fillStyle='#8fdcff'; c.beginPath(); c.arc(cxg,cyg,16*u,0,6.28); c.fill(); spOfficer(c,cx-off*0.95,gy,OF); }
+  else if(i===8){ groundLine('#12183a'); spGenie(c,cx+off*0.6,gy-54*u,GN*ease(age),t); spOfficer(c,cx-off*1.05,gy,OF);
+    c.font=(24*u)+'px sans-serif'; c.textAlign='center'; for(let k=0;k<6;k++){ const a=t*0.8+k, rx=cx+off*0.6+Math.cos(a)*96*u, ry=gy-64*u+Math.sin(a)*54*u; c.globalAlpha=0.4+0.3*Math.sin(t*2+k); c.fillText('✨',rx,ry); } c.globalAlpha=1; c.textAlign='left'; }
+  else { groundLine('#141042'); const gl=0.5+0.5*Math.sin(t*2.5), cxg=cx+off*1.1, cyg=gy-96*u; const cg=c.createRadialGradient(cxg,cyg,6,cxg,cyg,150*u); cg.addColorStop(0,'rgba(168,90,255,'+(0.5+gl*0.4)+')'); cg.addColorStop(1,'rgba(168,90,255,0)'); c.fillStyle=cg; c.beginPath(); c.arc(cxg,cyg,150*u,0,6.28); c.fill();
+    drawMax(c,cxg,cyg,48*u,0.7,'idle',t); spOfficer(c,cx-off*1.05,gy,OF*1.15); }
+}
+function renderStory(){ const p=STORY[S.storyIdx]; const k=$('storyKicker'), tx=$('storyText'); if(k) k.textContent=p.k; if(tx) tx.textContent=p.t;
+  const dots=$('storyDots'); if(dots){ dots.innerHTML=''; STORY.forEach((_,j)=>{ const d=document.createElement('span'); d.className='sdot'+(j===S.storyIdx?' on':''); dots.appendChild(d); }); }
+  const nx=$('storyNext'); if(nx) nx.textContent=(S.storyIdx>=STORY.length-1)?'Begin \u25B6':'Next \u203A'; }
+function startStory(replay){ story.replay=!!replay; S.storyIdx=0; renderStory(); show('story'); }
+function storyNext(){ sClick(); if(S.storyIdx>=STORY.length-1){ finishStory(); } else { S.storyIdx++; renderStory(); } }
+function finishStory(){ lsSet('contain_intro_seen',true); show('title'); }
+function skipStory(){ finishStory(); }
+function storyTick(ts){ const now=(ts||0)/1000; if(S.scene==='story'){ if(story.i!==S.storyIdx){ story.i=S.storyIdx; story.age=0; } story.age+=Math.min(0.05, (now-sPrev)||0); drawStoryScene(now, story.age); } sPrev=now; requestAnimationFrame(storyTick); }
+function wireStory(){ const nx=$('storyNext'); if(nx) nx.onclick=storyNext; const sk=$('storySkip'); if(sk) sk.onclick=skipStory;
+  const sc=$('storyCanvas'); if(sc) sc.addEventListener('pointerdown',()=>{ if(S.scene==='story') storyNext(); });
+  const tb=$('titleStoryBtn'); if(tb) tb.onclick=()=>startStory(true); }
+function initStory(){ wireStory(); requestAnimationFrame(storyTick); if(!lsGet('contain_intro_seen',false)) startStory(false); }
+
 /* boot */
-wire(); renderHearts();
+wire(); renderHearts(); initStory();
 
 </script>
 </body>

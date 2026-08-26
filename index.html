@@ -354,6 +354,12 @@
     font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-faint);}
   .mnode.focus::after{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(79,215,232,0.25);}
   .mnode.focus .mnode-name{color:#fff;}
+  .story-narr{position:absolute; top:14px; left:14px; z-index:4; font-family:var(--mono); font-size:12px; color:var(--text-dim);
+    background:rgba(11,14,38,0.6); border:1px solid var(--line); border-radius:12px; padding:7px 12px; cursor:pointer;}
+  .story-narr:active{transform:scale(0.95);}
+  .title-toggles{display:flex; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap;}
+  .float-pop.gem{color:#7cffc4;}
+  .float-pop.diamond{color:#e9f4ff; font-size:28px; text-shadow:0 0 14px rgba(154,212,255,0.9);}
 </style>
 </head>
 <body>
@@ -364,6 +370,7 @@
     <div class="story-art">
       <canvas id="storyCanvas"></canvas>
       <div class="story-lb top"></div>
+      <button class="story-narr" id="narrBtn">🔊 Narration on</button>
       <button class="story-skip" id="storySkip">Skip intro ✕</button>
     </div>
     <div class="story-panelbox">
@@ -398,7 +405,7 @@
         <button class="btn ghost" id="dailyBtn">📅 Daily</button>
         <button class="btn ghost" id="titleShareBtn">↗ Share <span class="copied" id="shareMsg">Link copied ✓</span></button>
       </div>
-      <button class="btn ghost sm" id="titleStoryBtn" style="margin-top:10px;">↻ Replay intro story</button>
+      <div class="title-toggles"><button class="btn ghost sm" id="titleStoryBtn">↻ Replay intro story</button><button class="btn ghost sm" id="musicBtnTitle">♪ Music on</button></div>
       <div class="streak-chip" id="streakChip">🔥 Daily streak: <span id="streakNum">0</span></div>
       <div class="src-line">Grounded in <b>Bostrom, Superintelligence</b> (2014), <b>Tegmark, Life 3.0</b> (2017), and AI-safety research since: reward hacking, deceptive alignment, alignment faking, agentic misalignment, gradual disempowerment &amp; more.</div>
     </div>
@@ -464,6 +471,7 @@
         <span class="maxchip" id="maxChip">⚡ MAX Lv1</span>
         <span class="combochip" id="comboChip">🔥 x2</span>
         <span class="progresschip" id="progChip">0 / 0</span>
+        <button class="icon-btn" id="musicBtn" aria-label="Music">♪</button>
         <button class="icon-btn" id="soundBtn" aria-label="Sound">🔇</button>
         <button class="icon-btn" id="backToMapBtn" aria-label="Back to map">✕</button>
       </div>
@@ -1328,9 +1336,96 @@ const sWin  =()=>{[523,659,784, 1046].forEach((f, i)=>tone(f, 0.13, 'sine', i*0.
 const sMeh  =()=>{tone(440, 0.12, 'sine', 0, 0.08,520);};
 const sBad  =()=>{tone(200, 0.2, 'sawtooth', 0, 0.16, 90);tone(150, 0.28, 'square', 0.12, 0.12, 70);};
 const sClick=()=>tone(600, 0.05, 'triangle', 0, 0.07);
+const sRare =()=>{[784,1046,1318,1568].forEach((f,i)=>tone(f,0.16,'triangle',i*0.05,0.09));};
 const sStep =()=>tone(180, 0.04, 'sine', 0, 0.03);
 const sJump =()=>tone(520, 0.12, 'sine', 0, 0.08,900);
 function toggleSound(){ S.soundOn=!S.soundOn; $('soundBtn').textContent=S.soundOn?'🔊':'🔇'; if(S.soundOn){ac();tone(600, 0.08, 'sine', 0, 0.08);} }
+
+
+/* ============================ NOIR-JAZZ SUSPENSE SCORE (generated) ============================ */
+const MUS={on:false, started:false, timer:null, bar:0, beat:0, bus:null, noise:null};
+function musicIntensity(){ let m=menace01(); if(S.scene==='game'&&S.hearts<=2) m=Math.min(1,m+0.25); if(S.scene==='story') m=0.2; return m; }
+/* progression: Cm9 | Fm9 | Dm7b5 | G7b9   (minor ii-V, noir) */
+const PROG=[
+  {root:48, ch:[51,55,58,62]},   // Cm9
+  {root:53, ch:[56,60,63,67]},   // Fm9
+  {root:50, ch:[53,56,60,65]},   // Dm7b5
+  {root:55, ch:[59,62,65,68]}    // G7b9
+];
+const WALK=[0,3,5,6];            // scale steps for the walking bass
+function mtof(m){ return 440*Math.pow(2,(m-69)/12); }
+function makeNoise(c){ try{ const len=Math.floor(c.sampleRate*0.6); const b=c.createBuffer(1,len,c.sampleRate); const d=b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1); return b; }catch(e){ return null; } }
+function jVoice(c,type,freq,t,dur,vol,dest,detune){ try{
+  const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t);
+  if(detune&&o.detune) o.detune.value=detune;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vol), t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(dest||c.destination); o.start(t); o.stop(t+dur+0.05); }catch(e){} }
+function brush(c,t,vol,dest){ try{ if(!MUS.noise) return; const s=c.createBufferSource(); s.buffer=MUS.noise;
+  const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=6500; f.Q.value=0.8;
+  const g=c.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.13);
+  s.connect(f); f.connect(g); g.connect(dest||c.destination); s.start(t); s.stop(t+0.16); }catch(e){} }
+function startMusic(){ const c=ac(); if(!c||MUS.started) return; MUS.started=true;
+  try{ MUS.bus=c.createGain(); MUS.bus.gain.value=0.0001; MUS.bus.connect(c.destination);
+       MUS.bus.gain.linearRampToValueAtTime(0.9, c.currentTime+2); }catch(e){ MUS.bus=null; }
+  MUS.noise=makeNoise(c);
+  MUS.timer=setInterval(musicStep, 1000); musicStep();
+}
+/* one bar per call: 4 beats of swung noir jazz */
+function musicStep(){ if(!MUS.on||!MUS.started) return; const c=ac(); if(!c) return;
+  const inten=musicIntensity(); const dest=MUS.bus||c.destination;
+  const bpm=68+inten*22, spb=60/bpm, t0=c.currentTime+0.06, swing=0.62;
+  const P=PROG[MUS.bar%PROG.length];
+  for(let b=0;b<4;b++){
+    const t=t0+b*spb;
+    /* upright walking bass */
+    const step=WALK[(MUS.bar+b)%WALK.length]+(b===3?(Math.random()<0.5?-1:1):0);
+    jVoice(c,'triangle', mtof(P.root-12+step), t, spb*0.92, 0.16+inten*0.05, dest);
+    /* brushed ride: swung eighths */
+    brush(c,t, 0.020+inten*0.020, dest);
+    brush(c,t+spb*swing, 0.013+inten*0.014, dest);
+    /* comping chord on the and-of-2 and beat 4, vibes-like */
+    if(b===1||b===3){ const tc=t+(b===1?spb*swing:0);
+      P.ch.forEach((n,i)=>{ const nn=(inten>0.6&&i===P.ch.length-1)? n+1 : n;   // tension note leans sharp when things get bad
+        jVoice(c,'sine', mtof(nn), tc+i*0.012, spb*1.15, 0.055+inten*0.03, dest); }); }
+    /* rim tick on 2 and 4 */
+    if(b===1||b===3) jVoice(c,'square', 1600, t, 0.035, 0.030, dest);
+  }
+  /* muted-trumpet phrase, sparse, more frequent as menace rises */
+  if(Math.random() < 0.28+inten*0.4){
+    const scale=[0,2,3,5,7,8,10]; const n=P.root+12+scale[(Math.random()*scale.length)|0];
+    const t=t0+spb*(1+Math.floor(Math.random()*2));
+    jVoice(c,'sawtooth', mtof(n), t, spb*1.3, 0.045+inten*0.035, dest, 8);
+    jVoice(c,'sine', mtof(n), t, spb*1.3, 0.030, dest);
+  }
+  /* low dread swell under high menace */
+  if(inten>0.55 && MUS.bar%2===0) jVoice(c,'sine', mtof(P.root-24), t0, spb*4, 0.05+inten*0.05, dest);
+  MUS.bar++;
+}
+function setMusic(on){ MUS.on=on; lsSet('contain_music', on); const b=$('musicBtn'); if(b) b.textContent=on?'♪':'♪̶'; const b2=$('musicBtnTitle'); if(b2) b2.textContent=on?'♪ Music on':'♪ Music off';
+  const c=ac(); if(on){ if(!MUS.started) startMusic(); else if(MUS.bus&&c) MUS.bus.gain.setTargetAtTime(0.9, c.currentTime, 0.8); }
+  else if(MUS.bus&&c){ MUS.bus.gain.setTargetAtTime(0.0001, c.currentTime, 0.4); } }
+function toggleMusic(){ setMusic(!MUS.on); }
+
+/* ============================ NARRATION (recorded audio files) ============================ */
+/* Drop ElevenLabs exports in ./voice/ as p1.mp3 ... p11.mp3 (one per story panel).
+   If a file is missing, narration simply stays silent. Browser TTS is NOT used. */
+const NARR={on:true, el:null, missing:{}};
+function narrSrc(i){ return 'voice/p'+(i+1)+'.mp3'; }
+function speakPanel(){ try{ if(!NARR.on) return; const i=S.storyIdx; if(NARR.missing[i]) return;
+    stopSpeak();
+    const a=new Audio(narrSrc(i)); a.preload='auto'; a.volume=1.0;
+    a.onerror=()=>{ NARR.missing[i]=true; };
+    NARR.el=a; const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+    if(MUS.bus&&ac()){ MUS.bus.gain.setTargetAtTime(0.35, ac().currentTime, 0.4);   /* duck music under narration */
+      a.onended=()=>{ if(MUS.bus&&ac()) MUS.bus.gain.setTargetAtTime(0.9, ac().currentTime, 0.8); }; }
+  }catch(e){} }
+function stopSpeak(){ try{ if(NARR.el){ NARR.el.pause(); NARR.el.currentTime=0; NARR.el=null; }
+    if(MUS.bus&&ac()) MUS.bus.gain.setTargetAtTime(0.9, ac().currentTime, 0.6); }catch(e){} }
+function initVoices(){ /* no-op: narration uses audio files */ }
+function toggleNarr(){ NARR.on=!NARR.on; lsSet('contain_narr', NARR.on); const b=$('narrBtn'); if(b) b.textContent=NARR.on?'🔊 Narration on':'🔇 Narration off';
+  if(NARR.on) speakPanel(); else stopSpeak(); }
 
 /* -------- MENACE / MAX identity -------- */
 const MAX_NAME='MAX';
@@ -1579,12 +1674,21 @@ function drawFragment(c, cx, cy, R, menace, tr, mood, t){
   c.restore();
 }
 
+const PICKUPS={
+  coin:   {min:5,  max:15,  step:5,  label:'coin',    a:'#ffd257', b:'#ffab3d'},
+  chip:   {min:20, max:45,  step:5,  label:'chip',    a:'#8fdcff', b:'#3fa7d6'},
+  gem:    {min:60, max:140, step:10, label:'gem',     a:'#7cffc4', b:'#25b581'},
+  diamond:{min:200,max:500, step:25, label:'DIAMOND', a:'#e9f4ff', b:'#9ad4ff'}
+};
 function layoutLevel(){ const b=biomeFor(); world.biome=b; world.seed=(hashStr((S.runKind||'r')+S.secIdx)%1000)/120;
   const n=S.qs.length; const gap=Math.max(340, W*0.62); const lastI=n-1;
   world.stations=S.qs.map((sc, i)=>({x:240+i*gap, cleared:i<S.idx, sc, i, pulse:Math.random()*6.28, boss:(S.runKind==='sector'&&i===lastI), result:undefined, anim:0, tr:fragTraits(sc.id, S.secIdx)}));
   world.len=240+n*gap+W*0.5; world.coins=[]; world.hazards=[]; world.caches=[]; world.decos=[];
   for(let i=0;i<n;i++){ const sX=i===0?120:world.stations[i-1].x+80, eX=world.stations[i].x-80;
-    for(let k=0;k<4;k++){ const cx=sX+(eX-sX)*((k+1)/5); const high=(k%2===1); world.coins.push({x:cx, y:terrainY(cx)-(high?120:64)-Math.sin(k)*10, got:false, bob:Math.random()*6.28}); }
+    for(let k=0;k<5;k++){ const cx=sX+(eX-sX)*((k+1)/6); const high=(k%2===1);
+      const roll=Math.random(); const kind= roll<0.62?'coin' : roll<0.85?'chip' : roll<0.96?'gem' : 'diamond';
+      const P=PICKUPS[kind]; const val=Math.max(1, Math.round((P.min+Math.random()*(P.max-P.min))/P.step)*P.step);
+      world.coins.push({x:cx, y:terrainY(cx)-(high?124:66)-Math.sin(k)*10, got:false, bob:Math.random()*6.28, kind:kind, val:val, spin:Math.random()*6.28}); }
     if(i>0 && i%2===0){ const hx=(sX+eX)/2; world.hazards.push({x:hx, r:16, rot:0, bounced:false}); }
     if(n>=3 && i===Math.floor(n/2)){ const cx2=(sX+eX)/2; world.caches.push({x:cx2, y:terrainY(cx2)-118, opened:false, bob:Math.random()*6.28}); }
   }
@@ -1609,8 +1713,19 @@ function drawProp(kind, seed){ const b=world.biome||MIXED, a=b.accent; ctx.lineW
   else if(kind==='pipe'){ ctx.fillStyle=hexA(a, 0.16); roundRect(-8, -60, 16, 60, 4); ctx.fill(); ctx.fillStyle=hexA(a, 0.5+0.3*Math.sin(maxT*3+seed)); ctx.beginPath(); ctx.arc(0, -30, 5, 0, 6.28); ctx.fill(); }
   else { ctx.fillStyle=hexA(a, 0.1); roundRect(-16, -70, 32, 70, 4); ctx.fill(); ctx.strokeStyle=hexA(a, 0.4); ctx.strokeRect(-16, -70, 32, 70); for(let i=0;i<5;i++){ ctx.fillStyle=(Math.floor(maxT*2+seed+i)%2)?hexA(a, 0.9):hexA(a, 0.22); ctx.fillRect(-12, -64+i*13, 6, 4);} } }
 function drawDecos(){ const b=world.biome||MIXED; world.decos.forEach(d=>{ const sx=d.x-world.camX; if(sx<-140||sx>W+140) return; ctx.save(); ctx.translate(sx, terrainY(d.x)); drawProp(b.prop, d.x); ctx.restore(); }); }
-function drawCoin(cn){ const sx=cn.x-world.camX; if(sx<-40||sx>W+40||cn.got) return; const y=cn.y+Math.sin(cn.bob)*4; ctx.save(); const w=Math.abs(Math.cos(cn.bob*0.8))*14+6; ctx.translate(sx, y);
-  ctx.fillStyle='#ffab3d'; ctx.beginPath(); ctx.ellipse(0, 0, w, 15, 0, 0, 6.28); ctx.fill(); ctx.fillStyle='#ffd257'; ctx.beginPath(); ctx.ellipse(0, 0, w*0.7, 11, 0, 0, 6.28); ctx.fill(); ctx.restore(); }
+function drawCoin(cn){ const sx=cn.x-world.camX; if(sx<-40||sx>W+40||cn.got) return; const y=cn.y+Math.sin(cn.bob)*4; const P=PICKUPS[cn.kind||'coin'];
+  ctx.save(); ctx.translate(sx, y); const k=cn.kind||'coin';
+  const glow=k==='diamond'?26:k==='gem'?18:k==='chip'?12:0;
+  if(glow){ const g=ctx.createRadialGradient(0,0,2,0,0,glow); g.addColorStop(0,P.a); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.globalAlpha=0.45+0.25*Math.sin(cn.bob*1.6); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,glow,0,6.28); ctx.fill(); ctx.globalAlpha=1; }
+  if(k==='coin'){ const w=Math.abs(Math.cos(cn.bob*0.8))*14+6; ctx.fillStyle=P.b; ctx.beginPath(); ctx.ellipse(0,0,w,15,0,0,6.28); ctx.fill(); ctx.fillStyle=P.a; ctx.beginPath(); ctx.ellipse(0,0,w*0.7,11,0,0,6.28); ctx.fill(); }
+  else if(k==='chip'){ ctx.rotate(Math.sin(cn.bob*0.7)*0.4); ctx.fillStyle=P.b; roundRect(-13,-13,26,26,5); ctx.fill(); ctx.fillStyle=P.a; roundRect(-8,-8,16,16,3); ctx.fill(); }
+  else if(k==='gem'){ ctx.rotate(Math.sin(cn.bob*0.6)*0.3); ctx.fillStyle=P.b; ctx.beginPath(); for(let i=0;i<6;i++){ const a=i/6*6.28-1.57; const px=Math.cos(a)*15, py=Math.sin(a)*15; i?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); ctx.fill();
+    ctx.fillStyle=P.a; ctx.beginPath(); for(let i=0;i<6;i++){ const a=i/6*6.28-1.57; const px=Math.cos(a)*8, py=Math.sin(a)*8; i?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); ctx.fill(); }
+  else { const sp=cn.spin+cn.bob*0.5; ctx.rotate(Math.sin(sp*0.5)*0.35); ctx.fillStyle=P.b;
+    ctx.beginPath(); ctx.moveTo(0,-19); ctx.lineTo(14,-4); ctx.lineTo(0,19); ctx.lineTo(-14,-4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=P.a; ctx.beginPath(); ctx.moveTo(0,-19); ctx.lineTo(7,-4); ctx.lineTo(0,7); ctx.lineTo(-7,-4); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(-14,-4); ctx.lineTo(14,-4); ctx.stroke(); }
+  ctx.restore(); }
 function drawCache(cn){ if(cn.opened) return; const sx=cn.x-world.camX; if(sx<-40||sx>W+40) return; const y=cn.y+Math.sin(cn.bob)*4; ctx.save(); ctx.translate(sx, y);
   ctx.fillStyle='#2c3778'; roundRect(-16, -16, 32, 32, 6); ctx.fill(); ctx.strokeStyle='#ffd257'; ctx.lineWidth=2; roundRect(-16, -16, 32, 32, 6); ctx.stroke(); ctx.fillStyle='#ffd257'; ctx.font='700 18px Baloo 2, sans-serif'; ctx.textAlign='center'; ctx.fillText('?', 0, 6); ctx.textAlign='left'; ctx.restore(); }
 function drawHazard(hz){ if(hz.bounced) return; const sx=hz.x-world.camX; if(sx<-40||sx>W+40) return; const gy=terrainY(hz.x)-hz.r; ctx.save(); ctx.translate(sx, gy); ctx.rotate(hz.rot);
@@ -1669,7 +1784,9 @@ function loop(ts){ if(S.scene!=='game'){ last=ts; requestAnimationFrame(loop); r
     player.vy+=GRAV*dt; player.y+=player.vy*dt; if(player.y>=ground){ player.y=ground; player.vy=0; player.grounded=true; }
     if(player.walking&&player.grounded){ player.phase+=0.22*dt; stepAcc+=dt; if(stepAcc>10){stepAcc=0; sStep();} } else player.phase+=0.03*dt;
     const target=Math.max(0, Math.min(player.x-W*0.35, world.len-W)); world.camX+=(target-world.camX)*Math.min(1, 0.12*dt);
-    world.coins.forEach(cn=>{ if(!cn.got&&Math.abs(cn.x-player.x)<28&&Math.abs(cn.y-(player.y-40))<40){ cn.got=true; S.coins+=5; bumpCoins(); sCoin(); floatPop(cn.x-world.camX, cn.y-20, '+5', 'coin'); } });
+    world.coins.forEach(cn=>{ if(!cn.got&&Math.abs(cn.x-player.x)<28&&Math.abs(cn.y-(player.y-40))<44){ cn.got=true; const k=cn.kind||'coin'; const v=cn.val||5;
+      S.coins+=v; bumpCoins(); (k==='diamond'||k==='gem')?sRare():sCoin();
+      floatPop(cn.x-world.camX, cn.y-20, '+'+v+(k==='diamond'?' 💎':k==='gem'?' 💚':''), k==='diamond'?'diamond':k==='gem'?'gem':'coin'); } });
     world.caches.forEach(cn=>{ if(!cn.opened&&Math.abs(cn.x-player.x)<30&&Math.abs(cn.y-(player.y-40))<44){ cn.opened=true; S.coins+=25; bumpCoins(); sCoin(); floatPop(cn.x-world.camX, cn.y-20, '+25 cache', 'coin'); } });
     world.hazards.forEach(hz=>{ if(hz.bounced) return; const airborne=(terrainY(player.x)-player.y)>28; if(Math.abs(hz.x-player.x)<22&&!airborne){ hz.bounced=true; player.stumble=16; S.coins=Math.max(0, S.coins-5); sMeh(); floatPop(hz.x-world.camX, terrainY(hz.x)-40, 'stumble! −5', 'coin'); } });
     world.stations.forEach(st=>{ if(!st.cleared&&Math.abs(st.x-player.x)<40) openChallenge(st.i); }); }
@@ -1687,8 +1804,12 @@ function openChallenge(i){ if($('challenge').classList.contains('on')) return; S
 function answer(oi){ if(S.answered) return; S.answered=true; const sc=S.qs[S.idx], o=sc.options[oi]; S.results[sc.id]=o.v; recordStat(sc.id, oi);
   const _st=world.stations.find(s=>s.i===S.idx); if(_st){ _st.result=o.v; _st.anim=0; } if(o.v==='best') player.brainPulse=1;
   $('scOpts').style.display='none'; const v=VERDICT[o.v]; const stamp=$('scStamp'); stamp.className='stamp '+v.cls; stamp.textContent=(o.v==='best'?'✅ ':o.v==='partial'?'⚠️ ':'💥 ')+v.label; const reward=$('scReward');
-  if(o.v==='best'){ S.combo++; S.bestCombo=Math.max(S.bestCombo, S.combo); const gain=50*S.combo; S.coins+=gain; bumpCoins(); reward.className='reward-line plus'; reward.textContent='+'+gain+' coins'+(S.combo>=2?'   🔥 x'+S.combo+' combo!':''); S.maxMood='contained'; player.mood='happy'; sWin(); confettiBurst(26); }
-  else if(o.v==='partial'){ S.combo=0; S.coins+=10; bumpCoins(); reward.className='reward-line meh'; reward.textContent='+10 coins · combo reset, a half-measure buys a little time'; S.maxMood='neutral'; player.mood='ok'; sMeh(); }
+  if(o.v==='best'){ S.combo++; S.bestCombo=Math.max(S.bestCombo, S.combo);
+    const base=35+Math.floor(Math.random()*36); const crit=Math.random()<0.12; let gain=base*S.combo; if(crit) gain*=3;
+    S.coins+=gain; bumpCoins(); reward.className='reward-line plus';
+    reward.textContent=(crit?'💎 CLEAN CONTAINMENT!  +':'+')+gain+' pts'+(S.combo>=2?'   🔥 x'+S.combo+' combo':'');
+    S.maxMood='contained'; player.mood='happy'; crit?sRare():sWin(); confettiBurst(crit?46:26); }
+  else if(o.v==='partial'){ S.combo=0; S.coins+=10; bumpCoins(); reward.className='reward-line meh'; reward.textContent='+10 pts · combo reset, a half-measure buys a little time'; S.maxMood='neutral'; player.mood='ok'; sMeh(); }
   else { S.combo=0; if(S.hearts>0) S.hearts--; reward.className='reward-line minus'; reward.textContent='−1 heart'+(S.hearts<=0?'   ⚠ MAX is loose…':'   ·  MAX grows stronger'); S.maxMood='breached'; player.mood='sad'; sBad(); shakePanel(); flashBreach(); heartHit(); }
   renderHearts(); renderCombo(); renderMaxChip();
   const pct=statPct(sc); const rev=$('scOptReview'); rev.innerHTML='';
@@ -1827,6 +1948,13 @@ function wire(){
   { const b=$('scShareQ'); if(b) b.onclick=()=>{ const sc=S.qs[S.idx]; if(sc) shareQuestion(sc); };
     const c=$('challengeBtn'); if(c) c.onclick=shareChallenge;
     const cc=$('copyChallengeBtn'); if(cc) cc.onclick=()=>copyStr(challengeLink(),'copiedMsg'); }
+  { const mb=$('musicBtn'); if(mb) mb.onclick=toggleMusic; const mb2=$('musicBtnTitle'); if(mb2) mb2.onclick=toggleMusic;
+    const nb=$('narrBtn'); if(nb) nb.onclick=toggleNarr; }
+  initVoices();
+  MUS.on = lsGet('contain_music', true); NARR.on = lsGet('contain_narr', true);
+  { const b=$('musicBtn'); if(b) b.textContent=MUS.on?'♪':'♪̶'; const b2=$('musicBtnTitle'); if(b2) b2.textContent=MUS.on?'♪ Music on':'♪ Music off';
+    const n=$('narrBtn'); if(n) n.textContent=NARR.on?'🔊 Narration on':'🔇 Narration off'; }
+  document.addEventListener('pointerdown', function kick(){ if(MUS.on) startMusic(); document.removeEventListener('pointerdown', kick); });
   buildSocialLinks(); holdBtn($('btnLeft'), -1); holdBtn($('btnRight'), 1);
   $('gameCanvas').addEventListener('pointerdown', ()=>{ if(S.scene==='game'&&!$('challenge').classList.contains('on')) wantJump=true; });
   window.addEventListener('keydown', keydown); window.addEventListener('keyup', keyup);
@@ -1995,10 +2123,10 @@ function drawStoryPanel(c, w, h, i, t, age){
 function renderStory(){ const p=STORY[S.storyIdx]; const k=$('storyKicker'), tx=$('storyText'); if(k) k.textContent=p.k; if(tx) tx.textContent=p.t;
   const dots=$('storyDots'); if(dots){ dots.innerHTML=''; STORY.forEach((_, j)=>{ const d=document.createElement('span'); d.className='sdot'+(j===S.storyIdx?' on':''); dots.appendChild(d); }); }
   const nx=$('storyNext'); if(nx) nx.textContent=(S.storyIdx>=STORY.length-1)?'Begin \u25B6':'Next \u203A'; }
-function startStory(replay){ story.replay=!!replay; S.storyIdx=0; renderStory(); show('story'); }
-function storyNext(){ sClick(); if(S.storyIdx>=STORY.length-1){ finishStory(); } else { S.storyIdx++; renderStory(); } }
-function finishStory(){ lsSet('contain_intro_seen', true); show('title'); }
-function skipStory(){ finishStory(); }
+function startStory(replay){ story.replay=!!replay; S.storyIdx=0; renderStory(); show('story'); if(MUS.on) startMusic(); speakPanel(); }
+function storyNext(){ sClick(); if(S.storyIdx>=STORY.length-1){ stopSpeak(); finishStory(); } else { S.storyIdx++; renderStory(); speakPanel(); } }
+function finishStory(){ stopSpeak(); lsSet('contain_intro_seen', true); show('title'); }
+function skipStory(){ stopSpeak(); finishStory(); }
 function storyTick(ts){ const now=(ts||0)/1000; if(S.scene==='story'){ if(story.i!==S.storyIdx){ story.i=S.storyIdx; story.age=0; } story.age+=Math.min(0.05, (now-sPrev)||0); drawStoryScene(now, story.age); } sPrev=now; requestAnimationFrame(storyTick); }
 function wireStory(){ const nx=$('storyNext'); if(nx) nx.onclick=storyNext; const sk=$('storySkip'); if(sk) sk.onclick=skipStory;
   const sc=$('storyCanvas'); if(sc) sc.addEventListener('pointerdown', ()=>{ if(S.scene==='story') storyNext(); });
